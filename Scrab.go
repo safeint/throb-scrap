@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-const path = `C:\Users\zhuji\Videos\vr\`
-const imgPath = `C:\Users\zhuji\Videos\vr\actor\`
+const path = `\\Ds918\vr\abcd\`
+const imgPath = `\\Ds918\vr\abcd\actor\`
 
 func main() {
 	var info VideoInfo
@@ -24,10 +24,11 @@ func main() {
 
 	mp4Files := GetMp4Files()
 	for key, value := range mp4Files {
+		fmt.Println("start scrab " + value)
 		var originName string
-		key = strings.TrimSuffix(key, ".mp4")
+		key = strings.TrimSuffix(strings.ToLower(key), ".mp4")
 		if strings.Contains(key, "-cd") {
-			re := regexp.MustCompile(`-cd\d+`)
+			re := regexp.MustCompile(`(?i)-cd\d+`)
 			originName = re.ReplaceAllString(key, "")
 		} else {
 			originName = key
@@ -127,7 +128,7 @@ func getActor(doc *goquery.Document) []Actor {
 	var actor []Actor
 	doc.Find(".avatar-box").Each(func(i int, selection *goquery.Selection) {
 		imgSrc, _ := selection.Find("img").First().Attr("src")
-		name := selection.Find("span").First().Text()
+		name, _ := selection.Find("img").First().Attr("title")
 		info := Actor{Name: name, Role: name, Type: "Actor", SortOrder: i, Thumb: fmt.Sprintf("/config/metadata/actor/%s.jpg", name)}
 		if !strings.Contains(imgSrc, "http") {
 			imgName := fmt.Sprintf("%s.jpg", name)
