@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-const path = `\\Ds918\vr\abcd\`
-const imgPath = `\\Ds918\vr\abcd\actor\`
+const path = `\\Ds918\vr\throb\`
+const imgPath = `\\Ds918\vr\throb\actor\`
 
 func main() {
 	var info VideoInfo
@@ -84,6 +84,7 @@ func main() {
 			runtimeMin, _ := strconv.Atoi(strings.ReplaceAll(getBasicInfo(doc, "長度"), "分鐘", ""))
 			info.Runtime = runtimeMin
 			info.SortName = info.OriginalTitle
+			info.SortTitle = info.OriginalTitle
 			info.Studio = getBasicInfo(doc, "發行商:")
 			info.Tag = getTag(doc)
 			info.Thumb = info.Cover
@@ -290,7 +291,7 @@ func GetMp4Files() map[string]string {
 }
 
 func MoveMp4File(source string, destDir string) {
-	sourceFileName := filepath.Base(source)
+	sourceFileName := strings.ToLower(filepath.Base(source))
 	destPath := filepath.Join(destDir, sourceFileName)
 	err := os.Rename(source, destPath)
 	if err != nil {
