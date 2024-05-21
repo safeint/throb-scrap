@@ -14,19 +14,20 @@ import (
 	"time"
 )
 
-const path = `\\Ds918\vr\throb\`
-const imgPath = `\\Ds918\vr\throb\actor\`
+const path = `\\ds918\VR\temp\`
+const imgPath = `\\ds918\VR\temp\actor\`
 
 func main() {
 	var info VideoInfo
+	extensions := []string{".mp4", ".mkv", ".avi", ".rmvb", ".wmv"}
 	// 创建头像文件夹
 	createDirectory(imgPath)
 
-	mp4Files := GetMp4Files()
-	for key, value := range mp4Files {
+	videoFiles := GetVideoFile(extensions...)
+	for key, value := range videoFiles {
 		fmt.Println("start scrab " + value)
 		var originName string
-		key = strings.TrimSuffix(strings.ToLower(key), ".mp4")
+		key = RemoveAnySuffix(key, extensions)
 		if strings.Contains(key, "-cd") {
 			re := regexp.MustCompile(`(?i)-cd\d+`)
 			originName = re.ReplaceAllString(key, "")
@@ -119,7 +120,7 @@ func main() {
 				return
 			}
 		}
-		MoveMp4File(value, fullPath)
+		MoveVideoFile(value, fullPath)
 
 	}
 
@@ -167,7 +168,7 @@ func getArt(doc *goquery.Document, fullPath string, directoryName string, origin
 		fanart = append(fanart, "/media/"+directoryName+"/"+originName+"/"+img["title"]+".jpg")
 	}
 
-	poster := "/media/" + directoryName + "/" + originName + "/" + originName + ".jpg"
+	poster := "cover.jpg"
 	return Art{Poster: poster, FanArt: fanart}
 }
 
@@ -179,7 +180,12 @@ func getBasicInfo(doc *goquery.Document, tagStr string) string {
 
 func getCover(doc *goquery.Document, fullPath string, directoryName string, originalName string) string {
 	coverUrl, _ := doc.Find(".bigImage").First().Attr("href")
-	imgDown(fullPath, originalName, "https://www.javbus.com"+coverUrl)
+	if strings.Contains(coverUrl, "http") {
+		imgDown(fullPath, "cover", coverUrl)
+	} else {
+		imgDown(fullPath, "cover", "https://www.javbus.com"+coverUrl)
+	}
+
 	return "/media/" + directoryName + "/" + originalName + "/" + originalName + ".jpg"
 }
 
@@ -264,16 +270,16 @@ func createDirectory(fullPath string) bool {
 	}
 }
 
-func GetMp4Files() map[string]string {
+func GetVideoFile(extensions ...string) map[string]string {
 	dirPath := path
 	// 初始化一个用于存放文件名和路径的集合
-	mp4Files := make(map[string]string)
+	videoFiles := make(map[string]string)
 	// 递归遍历目录及其子目录下的所有文件
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-		// 检查文件是否为目标文件（以 ".mp4" 为后缀）
-		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".mp4") {
+		// 检查文件是否为目标文件
+		if !info.IsDir() && HasAnySuffix(info.Name(), extensions) {
 			// 将文件名和完整路径存入集合
-			mp4Files[info.Name()] = path
+			videoFiles[info.Name()] = path
 		}
 		return nil
 	})
@@ -283,18 +289,39 @@ func GetMp4Files() map[string]string {
 		return nil
 	}
 	// 打印结果
-	fmt.Println("MP4 Files:")
-	for name, path := range mp4Files {
+	fmt.Println("Video Files:")
+	for name, path := range videoFiles {
 		fmt.Printf("%s: %s\n", name, path)
 	}
-	return mp4Files
+	return videoFiles
 }
 
-func MoveMp4File(source string, destDir string) {
+func MoveVideoFile(source string, destDir string) {
 	sourceFileName := strings.ToLower(filepath.Base(source))
 	destPath := filepath.Join(destDir, sourceFileName)
 	err := os.Rename(source, destPath)
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func HasAnySuffix(fileName string, extensions []string) bool {
+	lowerFileName := strings.ToLower(fileName)
+	for _, extension := range extensions {
+		if strings.HasSuffix(lowerFileName, extension) {
+			return true
+		}
+	}
+	return false
+}
+
+func RemoveAnySuffix(fileName string, extensions []string) string {
+	lowerFileName := strings.ToLower(fileName)
+	for _, ext := range extensions {
+		lowerExt := strings.ToLower(ext)
+		if strings.HasSuffix(lowerFileName, lowerExt) {
+			return strings.TrimSuffix(lowerFileName, lowerExt)
+		}
+	}
+	return fileName
 }
